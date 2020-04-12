@@ -66,10 +66,10 @@ public class AzureProps {
 
 
     public String redact(String s) {
-        return s.replace(this.subscriptionId, "[RECATED]")
-                .replace(this.tenantId, "[RECATED]")
-                .replace(this.clientId, "[RECATED]")
-                .replace(this.clientSecret, "[RECATED]");
+        return s.replace(this.subscriptionId, "[REDACTED]")
+                .replace(this.tenantId, "[REDACTED]")
+                .replace(this.clientId, "[REDACTED]")
+                .replace(this.clientSecret, "[REDACTED]");
     }
 
     public File getWorkingDir() {

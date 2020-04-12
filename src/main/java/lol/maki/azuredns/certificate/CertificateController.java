@@ -39,7 +39,7 @@ public class CertificateController {
         final String name = this.azureProps.dnsZone(prefix);
         final String createdBy = authentication.getName();
         return this.dnsZoneRepository.findOne(name)
-                .switchIfEmpty(Mono.error(() -> new ResponseStatusException(NOT_FOUND, "The requested certificate is not found: " + name)))
+                .switchIfEmpty(Mono.error(() -> new ResponseStatusException(NOT_FOUND, "The requested dns zone is not found: " + name)))
                 .flatMapMany(__ -> this.legoRunner.run(prefix, createdBy)
                         .concatWith(Mono.defer(() -> {
                             final FileSystemResource tarFile = new FileSystemResource(String.format("%s/%s/.lego/lego.tar.gz", this.azureProps.getWorkingDir().getAbsolutePath(), prefix));
