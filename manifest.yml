@@ -1,0 +1,30 @@
+applications:
+- name: azure-dns-mgmt
+  memory: 256M
+  disk_quota: 2G
+  path: target/azure-dns-mgmt-0.0.1-SNAPSHOT.jar
+  buildpacks:
+  - https://github.com/cloudfoundry/apt-buildpack#v0.2.2
+  - java_buildpack_offline
+  services:
+  #
+  - mgmt-db
+  # cf create-service credhub default azure -c '{"subscription_id": "****", "tenant_id": "****","client_id": "****", "client_secret": "****"}'
+  - azure
+  env:
+    JAVA_OPTS: -XX:ReservedCodeCacheSize=32M -Xss512k -Duser.timezone=Asia/Tokyo
+    JBP_CONFIG_OPEN_JDK_JRE: '{memory_calculator: {stack_threads: 20}, jre: {version: 11.+}}'
+    JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '{enabled: false}'
+    SPRING_PROFILES_ACTIVE: cloud
+    SPRING_R2DBC_URL: r2dbc:mysql://${vcap.services.mgmt-db.credentials.hostname}:${vcap.services.mgmt-db.credentials.port}/${vcap.services.mgmt-db.credentials.name}
+    SPRING_R2DBC_USERNAME: ${vcap.services.mgmt-db.credentials.username}
+    SPRING_R2DBC_PASSWORD: ${vcap.services.mgmt-db.credentials.password}
+    MANAGEMENT_METRICS_TAGS_ORGANIZATION: ${vcap.application.organization_name}
+    MANAGEMENT_METRICS_TAGS_SPACE: ${vcap.application.space_name}
+    MANAGEMENT_METRICS_TAGS_APPLICATION: ${vcap.application.application_name}
+    MANAGEMENT_METRICS_TAGS_INSTANCE_ID: ${management.metrics.tags.application}:${vcap.application.instance_index}
+    MANAGEMENT_METRICS_EXPORT_PROMETHEUS_RSOCKET_HOST: prometheus-proxy.dev.bosh.tokyo
+    AZURE_SUBSCRIPTION_ID: ${vcap.services.azure.credentials.subscription_id}
+    AZURE_TENANT_ID: ${vcap.services.azure.credentials.tenant_id}
+    AZURE_CLIENT_ID: ${vcap.services.azure.credentials.client_id}
+    AZURE_CLIENT_SECRET: ${vcap.services.azure.credentials.client_secret}

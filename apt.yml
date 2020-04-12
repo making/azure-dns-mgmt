@@ -1,0 +1,11 @@
+truncatesources: true
+cleancache: true
+keys:
+- https://raw.githubusercontent.com/starkandwayne/homebrew-cf/master/public.key
+- https://packages.microsoft.com/keys/microsoft.asc
+repos:
+- deb http://apt.starkandwayne.com stable main
+- deb https://packages.microsoft.com/repos/azure-cli bionic main
+packages:
+- terraform
+- azure-cli
