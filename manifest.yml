@@ -2,7 +2,7 @@ applications:
 - name: azure-dns-mgmt
   memory: 256M
   disk_quota: 2G
-  path: target/azure-dns-mgmt-0.0.1-SNAPSHOT.jar
+  path: azure-dns-mgmt-api/target/azure-dns-mgmt-api-0.0.1-SNAPSHOT.jar
   buildpacks:
   - https://github.com/cloudfoundry/apt-buildpack#v0.2.2
   - java_buildpack_offline

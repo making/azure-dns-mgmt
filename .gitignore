@@ -32,3 +32,6 @@ build/
 
 .terraform/
 application-default.properties
+
+dist
+node_modules
