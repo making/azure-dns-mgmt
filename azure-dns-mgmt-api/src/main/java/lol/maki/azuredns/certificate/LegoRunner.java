@@ -31,16 +31,7 @@ public class LegoRunner {
                         "  --domains=\"*.uaa.sys.${SUBDOMAIN}\" \\\n" +
                         "  --domains=\"*.login.sys.${SUBDOMAIN}\" \\\n" +
                         "  --domains=\"*.run.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.uaa.run.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.login.run.${SUBDOMAIN}\" \\\n" +
                         "  --domains=\"*.dev.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.apps.dev.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.sys.dev.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.uaa.sys.dev.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.login.sys.dev.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.run.dev.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.uaa.run.dev.${SUBDOMAIN}\" \\\n" +
-                        "  --domains=\"*.login.run.dev.${SUBDOMAIN}\" \\\n" +
                         "  --email=\"${EMAIL}\" \\\n" +
                         "  --dns=azure \\\n" +
                         "  run")
