@@ -8,9 +8,28 @@ const initialize = () => {
     reload().then();
     dnsZones.addEventListener('click', e => {
         const elm = e.target;
-        if (elm.type === 'button' && elm.dataset && elm.dataset.name) {
+        if (elm.type === 'button' && elm.dataset && elm.dataset.name && elm.dataset.command) {
             const name = elm.dataset.name;
-            downloadCertificates(name);
+            const command = elm.dataset.command;
+            switch (command) {
+                case 'download': {
+                    downloadCertificates(name);
+                    break;
+                }
+                case 'generate': {
+                    elm.innerText = 'Generating ...';
+                    elm.disabled = true;
+                    generateCertificates(name)
+                        .then(() => reload().then());
+                    break;
+                }
+                case 'delete': {
+                    elm.innerText = 'Deleting ...';
+                    elm.disabled = true;
+                    deleteDnsZone(name)
+                        .then(() => reload().then());
+                }
+            }
         }
     });
 };
@@ -21,7 +40,8 @@ const loadDnsZones = () => fetch('/dns_zones')
 <td>${zone.name}</td>
 <td>${zone.createdBy}</td>
 <td>${zone.createdAt}</td>
-<td>${zone.certificate && downloadCertificatesButton(zone.name)}</td>
+<td>${zone.certificate ? downloadCertificatesButton(zone.name) : generateCertificatesButton(zone.name)}</td>
+<td>${deleteDnsZoneButton(zone.name)}</td>
 </tr>`).join(''));
 
 
@@ -32,7 +52,33 @@ const downloadCertificates = (name) => {
 };
 
 const downloadCertificatesButton = (name) => {
-    return `<span><button type="button" class="pui-btn pui-btn--primary" data-name="${name}">Download</button></span>`;
+    return `<span><button type="button" class="pui-btn pui-btn--primary" data-name="${name}" data-command="download">Download</button></span>`;
+};
+
+const generateCertificates = (name) => {
+    return fetch(`/certificates/${name}`, {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json'
+        }
+    });
+};
+
+const generateCertificatesButton = (name) => {
+    return `<span><button type="button" class="pui-btn pui-btn--brand" data-name="${name}" data-command="generate">Generate</button></span>`;
+};
+
+const deleteDnsZone = (name) => {
+    return fetch(`/dns_zones/${name}`, {
+        method: 'DELETE',
+        headers: {
+            'Accept': 'application/json'
+        }
+    });
+};
+
+const deleteDnsZoneButton = (name) => {
+    return `<span><button type="button" class="pui-btn pui-btn--danger" data-name="${name}" data-command="delete">Delete</button></span>`;
 };
 
 document.addEventListener('DOMContentLoaded', initialize);

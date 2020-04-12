@@ -15,6 +15,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -44,19 +45,50 @@ public class DnsZoneController {
     }
 
     @PutMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> provision(@PathVariable String prefix, @AuthenticationPrincipal Authentication authentication) {
+    public Flux<String> provisionStream(@PathVariable String prefix, @AuthenticationPrincipal Authentication authentication) {
         return this.terraformRunner.provision(prefix)
-                .concatWith(Mono.defer(() -> {
-                    final FileSystemResource file = new FileSystemResource(String.format("%s/%s.tfstate", this.azureProps.getWorkingDir().getAbsolutePath(), prefix));
-                    final Mono<DnsZone> dnsZone = Resources.copyToString(file)
-                            .map(tfstate -> new DnsZone(this.azureProps.dnsZone(prefix), tfstate, authentication.getName(), LocalDateTime.now()));
-                    return this.dnsZoneRepository.save(dnsZone)
-                            .transform(ResultMessages::result);
-                }));
+                .concatWith(this.saveDnsZone(prefix, authentication.getName())
+                        .transform(ResultMessages::result));
+    }
+
+    @PutMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<?> provisionJson(@PathVariable String prefix, @AuthenticationPrincipal Authentication authentication) {
+        return this.terraformRunner.provision(prefix)
+                .then(this.saveDnsZone(prefix, authentication.getName())
+                        .transform(ResultMessages::result)
+                        .map(result -> Map.of("result", result)));
+    }
+
+    private Mono<DnsZone> saveDnsZone(String prefix, String createdBy) {
+        final String name = this.azureProps.dnsZone(prefix);
+        return Mono.defer(() -> {
+            final FileSystemResource file = new FileSystemResource(String.format("%s/%s.tfstate", this.azureProps.getWorkingDir().getAbsolutePath(), prefix));
+            final Mono<DnsZone> dnsZone = Resources.copyToString(file)
+                    .map(tfstate -> new DnsZone(name, tfstate, createdBy, LocalDateTime.now()));
+            return this.dnsZoneRepository.save(dnsZone);
+        });
     }
 
     @DeleteMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> deprovision(@PathVariable String prefix) {
+    public Flux<String> deprovisionStream(@PathVariable String prefix) {
+        final String name = this.azureProps.dnsZone(prefix);
+        return this.deleteDnsZone(prefix).thenReturn("")
+                .concatWith(this.terraformRunner.deprovision(prefix))
+                .concatWith(this.dnsZoneRepository.delete(name)
+                        .transform(ResultMessages::result));
+    }
+
+    @DeleteMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<?> deprovisionJson(@PathVariable String prefix) {
+        final String name = this.azureProps.dnsZone(prefix);
+        return this.deleteDnsZone(prefix)
+                .thenMany(this.terraformRunner.deprovision(prefix))
+                .then(this.dnsZoneRepository.delete(name)
+                        .transform(ResultMessages::result)
+                        .map(result -> Map.of("result", result)));
+    }
+
+    private Mono<Void> deleteDnsZone(String prefix) {
         final FileSystemResource file = new FileSystemResource(String.format("%s/%s.tfstate", this.azureProps.getWorkingDir().getAbsolutePath(), prefix));
         final String name = this.azureProps.dnsZone(prefix);
         return this.dnsZoneRepository.findOne(name)
@@ -64,9 +96,6 @@ public class DnsZoneController {
                 .doOnSuccess(__ -> FileSystemUtils.deleteRecursively(file.getFile()))
                 .subscribeOn(Schedulers.boundedElastic())
                 .map(DnsZone::getTfstate)
-                .flatMap(tfstate -> Resources.copy(tfstate, file).thenReturn(""))
-                .concatWith(this.terraformRunner.deprovision(prefix))
-                .concatWith(this.dnsZoneRepository.delete(name)
-                        .transform(ResultMessages::result));
+                .flatMap(tfstate -> Resources.copy(tfstate, file));
     }
 }

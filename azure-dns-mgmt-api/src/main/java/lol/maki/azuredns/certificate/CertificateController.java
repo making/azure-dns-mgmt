@@ -16,6 +16,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -35,19 +36,37 @@ public class CertificateController {
     }
 
     @PutMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public Flux<String> generate(@PathVariable String prefix, @AuthenticationPrincipal Authentication authentication) {
+    public Flux<String> generateStream(@PathVariable String prefix, @AuthenticationPrincipal Authentication authentication) {
         final String name = this.azureProps.dnsZone(prefix);
         final String createdBy = authentication.getName();
         return this.dnsZoneRepository.findOne(name)
                 .switchIfEmpty(Mono.error(() -> new ResponseStatusException(NOT_FOUND, "The requested dns zone is not found: " + name)))
                 .flatMapMany(__ -> this.legoRunner.run(prefix, createdBy)
-                        .concatWith(Mono.defer(() -> {
-                            final FileSystemResource tarFile = new FileSystemResource(String.format("%s/%s/.lego/lego.tar.gz", this.azureProps.getWorkingDir().getAbsolutePath(), prefix));
-                            final Mono<Certificate> certificate = Resources.copyToByteArray(tarFile)
-                                    .map(lego -> new Certificate(name, lego, createdBy, LocalDateTime.now()));
-                            return this.certificateRepository.save(certificate)
-                                    .transform(ResultMessages::result);
-                        })));
+                        .concatWith(this.saveCertificate(prefix, createdBy)
+                                .transform(ResultMessages::result)));
+    }
+
+    @PutMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<?> generateJson(@PathVariable String prefix, @AuthenticationPrincipal Authentication authentication) {
+        final String name = this.azureProps.dnsZone(prefix);
+        final String createdBy = authentication.getName();
+        return this.dnsZoneRepository.findOne(name)
+                .switchIfEmpty(Mono.error(() -> new ResponseStatusException(NOT_FOUND, "The requested dns zone is not found: " + name)))
+                .flatMap(__ -> this.legoRunner.run(prefix, createdBy)
+                        .collectList()
+                        .then(this.saveCertificate(prefix, createdBy)
+                                .transform(ResultMessages::result)
+                                .map(result -> Map.of("result", result))));
+    }
+
+    private Mono<Certificate> saveCertificate(String prefix, String createdBy) {
+        final String name = this.azureProps.dnsZone(prefix);
+        return Mono.defer(() -> {
+            final FileSystemResource tarFile = new FileSystemResource(String.format("%s/%s/.lego/lego.tar.gz", this.azureProps.getWorkingDir().getAbsolutePath(), prefix));
+            final Mono<Certificate> certificate = Resources.copyToByteArray(tarFile)
+                    .map(lego -> new Certificate(name, lego, createdBy, LocalDateTime.now()));
+            return this.certificateRepository.save(certificate);
+        });
     }
 
     @GetMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.APPLICATION_OCTET_STREAM_VALUE)
