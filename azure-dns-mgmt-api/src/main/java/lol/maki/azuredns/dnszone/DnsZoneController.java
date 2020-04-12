@@ -43,7 +43,7 @@ public class DnsZoneController {
                 .switchIfEmpty(Mono.error(() -> new ResponseStatusException(NOT_FOUND, "The requested dns zone is not found: " + name)));
     }
 
-    @PutMapping(path = "{prefix}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @PutMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> provision(@PathVariable String prefix, @AuthenticationPrincipal Authentication authentication) {
         return this.terraformRunner.provision(prefix)
                 .concatWith(Mono.defer(() -> {
@@ -55,7 +55,7 @@ public class DnsZoneController {
                 }));
     }
 
-    @DeleteMapping(path = "{prefix}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @DeleteMapping(path = {"{prefix}", "{prefix}.${azure.parent-dns-zone}"}, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> deprovision(@PathVariable String prefix) {
         final FileSystemResource file = new FileSystemResource(String.format("%s/%s.tfstate", this.azureProps.getWorkingDir().getAbsolutePath(), prefix));
         final String name = this.azureProps.dnsZone(prefix);
