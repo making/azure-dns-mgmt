@@ -77,9 +77,89 @@ const initialize = async () => {
             }
         }
     };
+
+    const onClickDnsRecord = async e => {
+        const elm = e.target;
+        const command = elm.dataset.command;
+        const text = elm.innerText;
+        const dnsZone = elm.dataset.dnszone;
+        if (elm.type === 'button' && command) {
+            switch (command) {
+                case 'add': {
+                    const form = document.querySelector("#dnsRecords > form");
+                    const name = form['name'];
+                    const type = form['type'];
+                    const ttl = form['ttl'];
+                    const value = form['value'];
+
+                    if (!name.value || name.value.trim().length === 0) {
+                        alert('"name" is required!');
+                        return;
+                    }
+                    if (!type.value || type.value.trim().length === 0) {
+                        alert('"type" is required!');
+                        return;
+                    }
+                    if (!ttl.value) {
+                        alert('"ttl" is required!');
+                        return;
+                    }
+                    if (!value.value || value.value.trim().length === 0) {
+                        alert('"value" is required!');
+                        return;
+                    }
+                    const body = {
+                        name: name.value,
+                        type: type.value,
+                        ttl: ttl.value,
+                        value: value.value.split(',')
+                    };
+
+                    elm.disabled = true;
+                    name.disabled = true;
+                    type.disabled = true;
+                    ttl.disabled = true;
+                    value.disabled = true;
+                    elm.innerText = 'Adding ...';
+                    try {
+                        await dnsRecordService.addDnsRecords(dnsZone, body);
+                        dnsRecords.innerHTML = await loadDnsRecords(dnsZone);
+                        name.value = '';
+                        type.value = '';
+                        ttl.value = '';
+                        value.value = '';
+                    } finally {
+                        elm.disabled = false;
+                        name.disabled = false;
+                        type.disabled = false;
+                        ttl.disabled = false;
+                        value.disabled = false;
+                        elm.innerText = text;
+                    }
+                    break;
+                }
+                case 'delete': {
+                    const name = elm.dataset.name;
+                    const type = elm.dataset.type;
+                    elm.innerText = 'Deleting ...';
+                    elm.disabled = true;
+                    try {
+                        await dnsRecordService.deleteDnsRecords(dnsZone, {name, type});
+                        dnsRecords.innerHTML = await loadDnsRecords(dnsZone);
+                    } finally {
+                        elm.innerText = text;
+                        elm.disabled = false;
+                    }
+                    break;
+                }
+            }
+        }
+    };
+
     reloadButton.addEventListener('click', onClickReload);
     provisionButton.addEventListener('click', onClickProvision);
     dnsZones.addEventListener('click', onClickDnsZone);
+    dnsRecords.addEventListener('click', onClickDnsRecord);
     await onClickReload();
 };
 
@@ -96,7 +176,7 @@ const loadDnsZones = () => dnsZoneService.loadDnsZones()
 const loadDnsRecords = (name) => {
     return dnsRecordService.loadDnsRecords(name)
         .then(data => {
-            const tbody = data.map(record => `<tr><td>${record.name}</td><td>${record.type}</td><td>${record.ttl}</td><td>${record.value.join('<br>')}</td></tr>`).join('');
+            const tbody = data.map(record => `<tr><td>${record.name}</td><td>${record.type}</td><td>${record.ttl}</td><td>${record.value.join('<br>')}</td><td>${deleteDnsRecordButton(record.name, record.type, name)}</td></tr>`).join('');
             return `<h3>${name}</h3>
 <table class="pui-table pui-table--tr-hover">
     <thead>
@@ -105,10 +185,90 @@ const loadDnsRecords = (name) => {
         <th>Type</th>
         <th>TTL</th>
         <th>Value</th>
+        <th>Delete</th>
     </tr>
     </thead>
     <tbody>${tbody}</tbody>
-</table>`;
+</table>
+<form class="form">
+    <fieldset>
+        <div class="grid">
+            <div class="col">
+                <div class="form-unit inline-form-unit">
+                    <div class="grid grid-inline">
+                        <div class="col col-fixed label-row">
+                            <label for="name">Name</label>
+                        </div>
+                        <div class="col field-row">
+                            <input type="text" id="name" name="name"/>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="col help-row type-gray"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-unit inline-form-unit">
+                    <div class="grid grid-inline">
+                        <div class="col col-fixed label-row">
+                            <label for="type">Type</label>
+                        </div>
+                        <div class="col field-row">
+                            <select name="type" id="type">
+                                <option value="A">A</option>
+                                <option value="CNAME">CNAME</option>
+                                <option value="NS">NS</option>
+                            </select>                        
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="col help-row type-gray"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="col">
+                <div class="form-unit inline-form-unit">
+                    <div class="grid grid-inline">
+                        <div class="col col-fixed label-row">
+                            <label for="ttl">TTL</label>
+                        </div>
+                        <div class="col field-row">
+                            <input type="number" id="ttl" name="ttl" value="60"/>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="col help-row type-gray"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-unit inline-form-unit">
+                    <div class="grid grid-inline">
+                        <div class="col col-fixed label-row">
+                            <label for="value">Value</label>
+                        </div>
+                        <div class="col field-row">
+                            <input type="text" id="value" name="value"/>
+                        </div>
+                    </div>
+                    <div class="grid">
+                        <div class="col help-row type-gray"></div>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+        <div class="grid">
+            <div class="col col-fixed">
+                <button type="button" aria-label="Add" class="pui-btn pui-btn--primary" data-dnszone="${name}" data-command="add">Add</button>
+            </div>
+        </div>
+    </fieldset>
+</form>
+`;
         });
 };
 
@@ -132,6 +292,10 @@ const generateCertificatesButton = (name) => {
 
 const deleteDnsZoneButton = (name) => {
     return `<span><button type="button" class="pui-btn pui-btn--danger" data-name="${name}" data-command="delete">Delete</button></span>`;
+};
+
+const deleteDnsRecordButton = (name, type, dnsZone) => {
+    return `<span><button type="button" class="pui-btn pui-btn--danger" data-name="${name}" data-type="${type}" data-dnszone="${dnsZone}" data-command="delete">Delete</button></span>`;
 };
 
 document.addEventListener('DOMContentLoaded', initialize);
