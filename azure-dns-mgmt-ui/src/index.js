@@ -6,16 +6,17 @@ const initialize = async () => {
     const reload = async () => {
         dnsZones.innerHTML = await loadDnsZones();
     };
-    reloadButton.addEventListener('click', async e => {
-        const elm = e.target;
-        const text = elm.innerText;
+
+    const onClickReload = async () => {
+        const text = reloadButton.innerText;
         reloadButton.disabled = true;
-        elm.innerText = 'Reloading ...';
-        await reload();
+        reloadButton.innerText = 'Reloading ...';
+        dnsZones.innerHTML = await loadDnsZones()
         reloadButton.disabled = false;
-        elm.innerText = text;
-    });
-    provisionButton.addEventListener('click', async e => {
+        reloadButton.innerText = text;
+    };
+
+    const onClickProvision = async e => {
         const elm = e.target;
         const name = prefix.value;
         const text = elm.innerText;
@@ -32,8 +33,9 @@ const initialize = async () => {
         elm.innerText = text;
         provisionButton.disabled = false;
         prefix.disabled = false;
-    });
-    dnsZones.addEventListener('click', async e => {
+    };
+
+    const onClickDnsZone = async e => {
         const elm = e.target;
         if (elm.type === 'button' && elm.dataset && elm.dataset.name && elm.dataset.command) {
             const name = elm.dataset.name;
@@ -58,8 +60,11 @@ const initialize = async () => {
                 }
             }
         }
-    });
-    await reload();
+    };
+    reloadButton.addEventListener('click', onClickReload);
+    provisionButton.addEventListener('click', onClickProvision);
+    dnsZones.addEventListener('click', onClickDnsZone);
+    await onClickReload();
 };
 
 const loadDnsZones = () => fetch('/dns_zones')
