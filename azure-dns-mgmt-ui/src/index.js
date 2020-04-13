@@ -1,3 +1,7 @@
+import certificateService from "./CertificateService";
+import dnsZoneService from "./DnsZoneService";
+import dnsRecordService from "./DnsRecordService";
+
 const initialize = async () => {
     const reloadButton = document.getElementById('reload');
     const provisionButton = document.getElementById('provision');
@@ -28,7 +32,7 @@ const initialize = async () => {
         elm.innerText = 'Provisioning ...';
         provisionButton.disabled = true;
         prefix.disabled = true;
-        await provisionDnsZone(name);
+        await dnsZoneService.provisionDnsZone(name);
         await reload();
         prefix.value = '';
         elm.innerText = text;
@@ -50,15 +54,16 @@ const initialize = async () => {
                 case 'generate': {
                     elm.innerText = 'Generating ...';
                     elm.disabled = true;
-                    await generateCertificates(name);
+                    await certificateService.generateCertificates(name);
                     await reload();
                     break;
                 }
                 case 'delete': {
                     elm.innerText = 'Deleting ...';
                     elm.disabled = true;
-                    await deleteDnsZone(name);
+                    await dnsZoneService.deleteDnsZone(name);
                     await reload();
+                    break;
                 }
                 case 'show-records': {
                     elm.innerText = 'Loading ...';
@@ -67,6 +72,7 @@ const initialize = async () => {
                     dnsRecords.innerHTML = await loadDnsRecords(name);
                     elm.innerText = text;
                     elm.disabled = false;
+                    break;
                 }
             }
         }
@@ -77,8 +83,7 @@ const initialize = async () => {
     await onClickReload();
 };
 
-const loadDnsZones = () => fetch('/dns_zones')
-    .then(res => res.json())
+const loadDnsZones = () => dnsZoneService.loadDnsZones()
     .then(data => data.map(zone => `<tr>
 <td>${zone.name}</td>
 <td>${zone.createdBy}</td>
@@ -88,19 +93,8 @@ const loadDnsZones = () => fetch('/dns_zones')
 <td>${deleteDnsZoneButton(zone.name)}</td>
 </tr>`).join(''));
 
-
-const provisionDnsZone = (name) => {
-    return fetch(`/dns_zones/${name}`, {
-        method: 'PUT',
-        headers: {
-            'Accept': 'application/json'
-        }
-    });
-};
-
 const loadDnsRecords = (name) => {
-    return fetch(`/dns_zones/${name}/dns_records`)
-        .then(res => res.json())
+    return dnsRecordService.loadDnsRecords(name)
         .then(data => {
             const tbody = data.map(record => `<tr><td>${record.name}</td><td>${record.type}</td><td>${record.ttl}</td><td>${record.value.join('<br>')}</td></tr>`).join('');
             return `<h3>${name}</h3>
@@ -132,26 +126,8 @@ const downloadCertificatesButton = (name) => {
     return `<span><button type="button" class="pui-btn pui-btn--primary" data-name="${name}" data-command="download">Download</button></span>`;
 };
 
-const generateCertificates = (name) => {
-    return fetch(`/certificates/${name}`, {
-        method: 'PUT',
-        headers: {
-            'Accept': 'application/json'
-        }
-    });
-};
-
 const generateCertificatesButton = (name) => {
     return `<span><button type="button" class="pui-btn pui-btn--brand" data-name="${name}" data-command="generate">Generate</button></span>`;
-};
-
-const deleteDnsZone = (name) => {
-    return fetch(`/dns_zones/${name}`, {
-        method: 'DELETE',
-        headers: {
-            'Accept': 'application/json'
-        }
-    });
 };
 
 const deleteDnsZoneButton = (name) => {
