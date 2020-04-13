@@ -1,6 +1,12 @@
 package lol.maki.azuredns;
 
 import am.ik.csng.CompileSafeParameters;
+import com.microsoft.azure.AzureEnvironment;
+import com.microsoft.azure.AzureResponseBuilder;
+import com.microsoft.azure.credentials.ApplicationTokenCredentials;
+import com.microsoft.azure.management.dns.implementation.DnsZoneManager;
+import com.microsoft.azure.serializer.AzureJacksonAdapter;
+import com.microsoft.rest.RestClient;
 import lol.maki.azuredns._AzurePropsParameters.*;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.ConstructorBinding;
@@ -64,6 +70,17 @@ public class AzureProps {
         return t;
     }
 
+    public DnsZoneManager dnsZoneManager() {
+        final ApplicationTokenCredentials credentials = new ApplicationTokenCredentials(
+                this.clientId, this.tenantId, this.clientSecret, AzureEnvironment.AZURE);
+        final RestClient restClient = new RestClient.Builder()
+                .withBaseUrl(credentials.environment(), AzureEnvironment.Endpoint.RESOURCE_MANAGER)
+                .withCredentials(credentials)
+                .withSerializerAdapter(new AzureJacksonAdapter())
+                .withResponseBuilderFactory(new AzureResponseBuilder.Factory())
+                .build();
+        return DnsZoneManager.authenticate(restClient, this.subscriptionId);
+    }
 
     public String redact(String s) {
         return s.replace(this.subscriptionId, "[REDACTED]")

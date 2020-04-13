@@ -2,6 +2,7 @@ const initialize = async () => {
     const reloadButton = document.getElementById('reload');
     const provisionButton = document.getElementById('provision');
     const dnsZones = document.getElementById('dnsZones');
+    const dnsRecords = document.getElementById('dnsRecords');
     const prefix = document.getElementById('prefix');
     const reload = async () => {
         dnsZones.innerHTML = await loadDnsZones();
@@ -40,6 +41,7 @@ const initialize = async () => {
         if (elm.type === 'button' && elm.dataset && elm.dataset.name && elm.dataset.command) {
             const name = elm.dataset.name;
             const command = elm.dataset.command;
+            const text = elm.innerText;
             switch (command) {
                 case 'download': {
                     downloadCertificates(name);
@@ -58,6 +60,14 @@ const initialize = async () => {
                     await deleteDnsZone(name);
                     await reload();
                 }
+                case 'show-records': {
+                    elm.innerText = 'Loading ...';
+                    dnsRecords.innerHTML = `<h3>${name}</h3><p>Loading ...</p>`;
+                    elm.disabled = true;
+                    dnsRecords.innerHTML = await loadDnsRecords(name);
+                    elm.innerText = text;
+                    elm.disabled = false;
+                }
             }
         }
     };
@@ -73,6 +83,7 @@ const loadDnsZones = () => fetch('/dns_zones')
 <td>${zone.name}</td>
 <td>${zone.createdBy}</td>
 <td>${zone.createdAt}</td>
+<td>${showDnsRecordsButton(zone.name)}</td>
 <td>${zone.certificate ? downloadCertificatesButton(zone.name) : generateCertificatesButton(zone.name)}</td>
 <td>${deleteDnsZoneButton(zone.name)}</td>
 </tr>`).join(''));
@@ -85,6 +96,30 @@ const provisionDnsZone = (name) => {
             'Accept': 'application/json'
         }
     });
+};
+
+const loadDnsRecords = (name) => {
+    return fetch(`/dns_zones/${name}/dns_records`)
+        .then(res => res.json())
+        .then(data => {
+            const tbody = data.map(record => `<tr><td>${record.name}</td><td>${record.type}</td><td>${record.ttl}</td><td>${record.value.join('<br>')}</td></tr>`).join('');
+            return `<h3>${name}</h3>
+<table class="pui-table pui-table--tr-hover">
+    <thead>
+    <tr>
+        <th>Name</th>
+        <th>Type</th>
+        <th>TTL</th>
+        <th>Value</th>
+    </tr>
+    </thead>
+    <tbody>${tbody}</tbody>
+</table>`;
+        });
+};
+
+const showDnsRecordsButton = (name) => {
+    return `<span><button type="button" class="pui-btn pui-btn--default" data-name="${name}" data-command="show-records">Show Records</button></span>`;
 };
 
 const downloadCertificates = (name) => {
