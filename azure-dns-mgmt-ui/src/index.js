@@ -1,12 +1,39 @@
-const initialize = () => {
+const initialize = async () => {
     const reloadButton = document.getElementById('reload');
+    const provisionButton = document.getElementById('provision');
     const dnsZones = document.getElementById('dnsZones');
+    const prefix = document.getElementById('prefix');
     const reload = async () => {
         dnsZones.innerHTML = await loadDnsZones();
     };
-    reloadButton.addEventListener('click', reload);
-    reload().then();
-    dnsZones.addEventListener('click', e => {
+    reloadButton.addEventListener('click', async e => {
+        const elm = e.target;
+        const text = elm.innerText;
+        reloadButton.disabled = true;
+        elm.innerText = 'Reloading ...';
+        await reload();
+        reloadButton.disabled = false;
+        elm.innerText = text;
+    });
+    provisionButton.addEventListener('click', async e => {
+        const elm = e.target;
+        const name = prefix.value;
+        const text = elm.innerText;
+        if (!name || name.trim().length === 0) {
+            alert('"prefix" is required!');
+            return;
+        }
+        elm.innerText = 'Provisioning ...';
+        provisionButton.disabled = true;
+        prefix.disabled = true;
+        await provisionDnsZone(name);
+        await reload();
+        prefix.value = '';
+        elm.innerText = text;
+        provisionButton.disabled = false;
+        prefix.disabled = false;
+    });
+    dnsZones.addEventListener('click', async e => {
         const elm = e.target;
         if (elm.type === 'button' && elm.dataset && elm.dataset.name && elm.dataset.command) {
             const name = elm.dataset.name;
@@ -19,19 +46,20 @@ const initialize = () => {
                 case 'generate': {
                     elm.innerText = 'Generating ...';
                     elm.disabled = true;
-                    generateCertificates(name)
-                        .then(() => reload().then());
+                    await generateCertificates(name);
+                    await reload();
                     break;
                 }
                 case 'delete': {
                     elm.innerText = 'Deleting ...';
                     elm.disabled = true;
-                    deleteDnsZone(name)
-                        .then(() => reload().then());
+                    await deleteDnsZone(name);
+                    await reload();
                 }
             }
         }
     });
+    await reload();
 };
 
 const loadDnsZones = () => fetch('/dns_zones')
@@ -44,6 +72,15 @@ const loadDnsZones = () => fetch('/dns_zones')
 <td>${deleteDnsZoneButton(zone.name)}</td>
 </tr>`).join(''));
 
+
+const provisionDnsZone = (name) => {
+    return fetch(`/dns_zones/${name}`, {
+        method: 'PUT',
+        headers: {
+            'Accept': 'application/json'
+        }
+    });
+};
 
 const downloadCertificates = (name) => {
     const a = document.createElement('a');

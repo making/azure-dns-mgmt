@@ -8,7 +8,7 @@
     <title>Azure DNS Mgmt</title>
 </head>
 <body>
-<button id="reload" class="pui-btn pui-btn--default">ReLoad</button>
+<button id="reload" type="button" class="pui-btn pui-btn--default">ReLoad</button>
 <table class="pui-table pui-table--tr-hover">
     <thead>
     <tr>
@@ -21,6 +21,32 @@
     </thead>
     <tbody id="dnsZones"></tbody>
 </table>
+<form class="form">
+    <fieldset>
+        <div class="grid">
+            <div class="col">
+                <div class="form-unit inline-form-unit">
+                    <div class="grid grid-inline">
+                        <div class="col col-fixed label-row">
+                            <label for="prefix">Prefix</label>
+                        </div>
+                        <div class="col field-row">
+                            <input type="text" name="prefix" id="prefix"/>
+                        </div>
+                        <div class="col col-fixed">.hack.maki.lol</div>
+                    </div>
+                    <div class="grid">
+                        <div class="col help-row type-gray"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <button type="button" id="provision" aria-label="Provision" class="pui-btn pui-btn--primary">
+                    <span>Provision</span></button>
+            </div>
+        </div>
+    </fieldset>
+</form>
 <script src="bundle.js"></script>
 </body>
 </html>
