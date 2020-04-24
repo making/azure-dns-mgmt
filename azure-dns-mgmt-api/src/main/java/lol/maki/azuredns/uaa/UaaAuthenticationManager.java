@@ -54,7 +54,7 @@ public class UaaAuthenticationManager implements ReactiveAuthenticationManager {
                                     final JWT idToken = JWTParser.parse(entity.getBody().get("id_token").asText());
                                     final JWTClaimsSet claims = idToken.getJWTClaimsSet();
                                     final String email = claims.getStringClaim("email");
-                                    final List<GrantedAuthority> authorities = email.endsWith("@pivotal.io") ? AuthorityUtils.createAuthorityList("ROLE_USER") : List.of();
+                                    final List<GrantedAuthority> authorities = AuthorityUtils.createAuthorityList("ROLE_USER");
                                     return new UsernamePasswordAuthenticationToken(email, "", authorities);
                                 });
                             } else {
